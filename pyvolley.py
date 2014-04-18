@@ -72,7 +72,7 @@ class OptionsMenu(Menu):
 
 
 if __name__ == '__main__':
-    director.init(resizable=False, width=1024, height=768)
+    director.init(resizable=False, width=1280, height=960)
     scene = Scene()
     scene.add(MultiplexLayer(
         MainMenu(),
