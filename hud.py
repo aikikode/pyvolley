@@ -10,7 +10,9 @@ class Hud(Layer):
     def __init__(self):
         super(Hud, self).__init__()
         self.width, self.height = director.get_window_size()
-        self.player_1_score = Label(text="0", position=((10, self.height - 40)))
-        self.player_2_score = Label(text="0", position=((self.width - 40, self.height - 40)), anchor_x="right")
-        self.add(self.player_1_score)
-        self.add(self.player_2_score)
+        self.players_score = [Label(text="0", position=((20, self.height - 50)),
+                                    font_name="Edit Undo Line BRK", font_size=35, italic=True),
+                              Label(text="0", position=((self.width - 20, self.height - 50)), anchor_x="right",
+                                    font_name="Edit Undo Line BRK", font_size=35, italic=True)]
+        self.add(self.players_score[0])
+        self.add(self.players_score[1])

@@ -7,6 +7,7 @@ import math
 from pyglet.window import key, pyglet
 import pymunk
 import constants
+from gamectrl import GameCtrl
 from hud import Hud
 from models import Ball, Player
 
@@ -53,6 +54,9 @@ class Game(Layer):
         self.space.add_collision_handler(0, 4, begin=lambda x, y: False)
         self.space.add_collision_handler(0, 3, begin=self.on_ball_hits_ground)
         self.game_active = True
+        # Configure event manager to send game events to control module
+        self.event_manager = pyglet.event.EventDispatcher()
+        self.event_manager.register_event_type('on_ball_hits_ground')
 
     def reset_ball(self, player=None):
         try:
@@ -63,7 +67,8 @@ class Game(Layer):
             pass
         # Add ball
         if not player:
-            player = random.sample([self.player_1, self.player_2], 1)
+            random.seed()
+            player = random.sample([self.player_1, self.player_2], 1)[0]
         if player == self.player_1:
             self.ball = Ball((self.width / 4., 400))
         else:
@@ -109,7 +114,9 @@ class Game(Layer):
         return True
 
     def on_ball_hits_ground(self, space, arbiter):
-        self.game_active = False
+        if self.game_active:
+            self.event_manager.dispatch_event('on_ball_hits_ground', self)
+            self.game_active = False
         return True
 
     def create_container(self):
@@ -147,6 +154,15 @@ class Game(Layer):
         self.space.add(pymunk.constraint.SimpleMotor(self.player_1.body, ground_body, 0))
         self.space.add(pymunk.constraint.SimpleMotor(self.player_2.body, ground_body, 0))
 
+    def get_ball_player(self):
+        return self.player_1 if self.ball.body.position[0] <= self.width / 2. else self.player_2
+
+    def player_to_index(self, player):
+        return 0 if player == self.player_1 else 1
+
+    def get_other_player(self, player):
+        return self.player_2 if player == self.player_1 else self.player_1
+
     def update(self, dt):
         dt = 1.0 / 120.
         self.space.step(dt)
@@ -156,10 +172,7 @@ class Game(Layer):
         if not self.game_active:
             if self.ball.body.position[0] >= self.width or self.ball.body.position[1] <= 0 or \
                     (self.ball.body.velocity.y <= 10 and self.ball.body.velocity.get_length() <= 200):
-                if self.ball.body.position[0] <= self.width / 2.:
-                    self.reset_ball(self.player_2)
-                else:
-                    self.reset_ball(self.player_1)
+                self.reset_ball(self.get_other_player(self.get_ball_player()))
 
     def on_key_press(self, k, m):
         if self.game_active:
@@ -199,6 +212,8 @@ def get_new_game():
     scene = Scene()
     game = Game()
     hud = Hud()
+    game_ctrl = GameCtrl(game, hud)
     scene.add(game, z=0, name="game layer")
-    scene.add(hud, z=1, name="hud layer")
+    scene.add(game_ctrl, z=1, name="game control layer")
+    scene.add(hud, z=2, name="hud layer")
     return scene
