@@ -1,9 +1,8 @@
 #!/usr/bin/env python
 import random
 from cocos.director import director, cocos
-from cocos.layer import Layer, ColorLayer
+from cocos.layer import Layer
 from cocos.scene import Scene
-import math
 from pyglet.window import key, pyglet
 import pymunk
 import constants
@@ -92,10 +91,10 @@ class Game(Layer):
     def on_player_hits_wall(self, space, arbiter):
         if arbiter.shapes[0] in [self.players[0].body_shape, self.players[0].head_shape]:
             self.players[0].body.velocity.x = 0
-            self.players[0].body.position.x = 65
+            self.players[0].body.position.x = 70
         elif arbiter.shapes[0] in [self.players[1].body_shape, self.players[1].head_shape]:
             self.players[1].body.velocity.x = 0
-            self.players[1].body.position.x = self.width - 65
+            self.players[1].body.position.x = self.width - 70
         return True
 
     def on_player_hits_net(self, space, arbiter):
@@ -129,9 +128,10 @@ class Game(Layer):
     def create_container(self):
         space = self.space
         # Add left and right screen borders
+        border_width = 50
         ss = [
-            pymunk.Segment(space.static_body, (self.width, 0), (self.width, max(self.height * 10, 1000)), 15),
-            pymunk.Segment(space.static_body, (0, 0), (0, max(self.height * 10, 1000)), 15)
+            pymunk.Segment(space.static_body, (self.width + border_width, 0), (self.width + border_width, max(self.height * 10, 1000)), border_width),
+            pymunk.Segment(space.static_body, (-border_width, 0), (-border_width, max(self.height * 10, 1000)), border_width)
         ]
         for s in ss:
             s.elasticity = 0.95
