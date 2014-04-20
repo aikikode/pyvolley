@@ -33,13 +33,14 @@ class Game(Layer):
         bg.position = (self.width / 2., self.height / 2.)
         self.add(bg, z=-1)
         # Add player 1
-        self.player_1 = Player((200, 176/2), "player_1.png")
-        self.space.add(self.player_1.body, self.player_1.body_shape, self.player_1.head_shape)
-        self.add(self.player_1.sprite)
+        self.players = []
+        self.players.append(Player((200, 176/2), "player_1.png"))
+        self.space.add(self.players[0].body, self.players[0].body_shape, self.players[0].head_shape)
+        self.add(self.players[0].sprite)
         # Add player 2
-        self.player_2 = Player((self.width - 200, 176/2), "player_2.png")
-        self.space.add(self.player_2.body, self.player_2.body_shape, self.player_2.head_shape)
-        self.add(self.player_2.sprite)
+        self.players.append(Player((self.width - 200, 176/2), "player_2.png"))
+        self.space.add(self.players[1].body, self.players[1].body_shape, self.players[1].head_shape)
+        self.add(self.players[1].sprite)
         # Add ball
         self.reset_ball()
         # Add walls and net
@@ -54,9 +55,11 @@ class Game(Layer):
         self.space.add_collision_handler(0, 4, begin=lambda x, y: False)
         self.space.add_collision_handler(0, 3, begin=self.on_ball_hits_ground)
         self.game_active = True
+        self.schedule_pause_ball = True
         # Configure event manager to send game events to control module
         self.event_manager = pyglet.event.EventDispatcher()
         self.event_manager.register_event_type('on_ball_hits_ground')
+        self.event_manager.register_event_type('on_player_hits_ball')
 
     def reset_ball(self, player=None):
         try:
@@ -68,55 +71,59 @@ class Game(Layer):
         # Add ball
         if not player:
             random.seed()
-            player = random.sample([self.player_1, self.player_2], 1)[0]
-        if player == self.player_1:
+            player = random.sample(self.players, 1)[0]
+        if player == self.players[0]:
             self.ball = Ball((self.width / 4., 400))
         else:
             self.ball = Ball((3 * self.width / 4., 400))
         self.space.add(self.ball.body, self.ball.shape)
         self.add(self.ball.sprite)
-        self.ball.body.sleep()
+        # self.ball.body.sleep()
         self.ball.set_indicator_height(self.height - 10)
         self.add(self.ball.indicator)
-        self.player_1.reset((200, 176/2))
-        self.player_2.reset((self.width - 200, 176/2))
+        self.players[0].reset((200, 176/2))
+        self.players[1].reset((self.width - 200, 176/2))
+        self.schedule_pause_ball = True
         self.game_active = True
 
+    def pause_ball(self):
+        self.ball.body.sleep()
+
     def on_player_hits_wall(self, space, arbiter):
-        if arbiter.shapes[0] in [self.player_1.body_shape, self.player_1.head_shape]:
-            self.player_1.body.velocity.x = 0
-            self.player_1.body.position.x = 65
-        elif arbiter.shapes[0] in [self.player_2.body_shape, self.player_2.head_shape]:
-            self.player_2.body.velocity.x = 0
-            self.player_2.body.position.x = self.width - 65
+        if arbiter.shapes[0] in [self.players[0].body_shape, self.players[0].head_shape]:
+            self.players[0].body.velocity.x = 0
+            self.players[0].body.position.x = 65
+        elif arbiter.shapes[0] in [self.players[1].body_shape, self.players[1].head_shape]:
+            self.players[1].body.velocity.x = 0
+            self.players[1].body.position.x = self.width - 65
         return True
 
     def on_player_hits_net(self, space, arbiter):
-        if arbiter.shapes[0] in [self.player_1.body_shape, self.player_1.head_shape]:
-            self.player_1.body.velocity.x = 0
-            self.player_1.body.position.x = self.width / 2 - 60 - 15
-        elif arbiter.shapes[0] in [self.player_2.body_shape, self.player_2.head_shape]:
-            self.player_2.body.velocity.x = 0
-            self.player_2.body.position.x = self.width / 2 + 60 + 15
+        if arbiter.shapes[0] in [self.players[0].body_shape, self.players[0].head_shape]:
+            self.players[0].body.velocity.x = 0
+            self.players[0].body.position.x = self.width / 2 - 60 - 15
+        elif arbiter.shapes[0] in [self.players[1].body_shape, self.players[1].head_shape]:
+            self.players[1].body.velocity.x = 0
+            self.players[1].body.position.x = self.width / 2 + 60 + 15
         return True
 
-
     def on_player_hits_ground(self, space, arbiter):
-        if arbiter.shapes[0] in [self.player_1.body_shape]:
-            self.player_1.body.velocity.y = 0
-        elif arbiter.shapes[0] in [self.player_2.body_shape]:
-            self.player_2.body.velocity.y = 0
+        if arbiter.shapes[0] in [self.players[0].body_shape]:
+            self.players[0].body.velocity.y = 0
+        elif arbiter.shapes[0] in [self.players[1].body_shape]:
+            self.players[1].body.velocity.y = 0
         return True
 
     def on_player_hits_ball(self, space, arbiter):
+        self.event_manager.dispatch_event('on_player_hits_ball', self)
         if self.ball.body.is_sleeping:
             self.ball.body.activate()
         return True
 
     def on_ball_hits_ground(self, space, arbiter):
         if self.game_active:
-            self.event_manager.dispatch_event('on_ball_hits_ground', self)
             self.game_active = False
+            self.event_manager.dispatch_event('on_ball_hits_ground', self)
         return True
 
     def create_container(self):
@@ -151,58 +158,54 @@ class Game(Layer):
         virtual_net.collision_type = 4
         space.add(virtual_net)
         # Add simple motor to prevent players from sliding
-        self.space.add(pymunk.constraint.SimpleMotor(self.player_1.body, ground_body, 0))
-        self.space.add(pymunk.constraint.SimpleMotor(self.player_2.body, ground_body, 0))
+        self.space.add(pymunk.constraint.SimpleMotor(self.players[0].body, ground_body, 0))
+        self.space.add(pymunk.constraint.SimpleMotor(self.players[1].body, ground_body, 0))
 
     def get_ball_player(self):
-        return self.player_1 if self.ball.body.position[0] <= self.width / 2. else self.player_2
-
-    def player_to_index(self, player):
-        return 0 if player == self.player_1 else 1
+        return 0 if self.ball.body.position[0] <= self.width / 2. else 1
 
     def get_other_player(self, player):
-        return self.player_2 if player == self.player_1 else self.player_1
+        return self.players[1] if player == self.players[0] else self.players[0]
 
     def update(self, dt):
         dt = 1.0 / 120.
         self.space.step(dt)
         self.ball.update(dt)
-        self.player_1.update(dt)
-        self.player_2.update(dt)
-        if not self.game_active:
-            if self.ball.body.position[0] >= self.width or self.ball.body.position[1] <= 0 or \
-                    (self.ball.body.velocity.y <= 10 and self.ball.body.velocity.get_length() <= 200):
-                self.reset_ball(self.get_other_player(self.get_ball_player()))
+        self.players[0].update(dt)
+        self.players[1].update(dt)
+        if self.schedule_pause_ball:
+            self.schedule_pause_ball = False
+            self.pause_ball()
 
     def on_key_press(self, k, m):
         if self.game_active:
             if k in (key.LEFT, key.RIGHT, key.UP):
                 if k == key.LEFT:
-                    self.player_2.move_left()
+                    self.players[1].move_left()
                 elif k == key.RIGHT:
-                    self.player_2.move_right()
+                    self.players[1].move_right()
                 elif k == key.UP:
-                    self.player_2.jump()
+                    self.players[1].jump()
             elif k in (key.A, key.D, key.W):
                 if k == key.A:
-                    self.player_1.move_left()
+                    self.players[0].move_left()
                 elif k == key.D:
-                    self.player_1.move_right()
+                    self.players[0].move_right()
                 elif k == key.W:
-                    self.player_1.jump()
+                    self.players[0].jump()
         return False
 
     def on_key_release(self, k, m):
         if k in (key.LEFT, key.RIGHT, key.UP):
-            if (k == key.LEFT and self.player_2.body.velocity.x < 0) or\
-                    (k == key.RIGHT and self.player_2.body.velocity.x > 0):
-                self.player_2.stop()
+            if (k == key.LEFT and self.players[1].body.velocity.x < 0) or\
+                    (k == key.RIGHT and self.players[1].body.velocity.x > 0):
+                self.players[1].stop()
             elif k == key.UP:
                 pass
         elif k in (key.A, key.D, key.W):
-            if (k == key.A and self.player_1.body.velocity.x < 0) or\
-                    (k == key.D and self.player_1.body.velocity.x > 0):
-                self.player_1.stop()
+            if (k == key.A and self.players[0].body.velocity.x < 0) or\
+                    (k == key.D and self.players[0].body.velocity.x > 0):
+                self.players[0].stop()
             elif k == key.W:
                 pass
         return False

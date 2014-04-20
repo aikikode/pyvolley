@@ -12,7 +12,7 @@ class Hud(Layer):
         self.width, self.height = director.get_window_size()
         self.players_score = [Label(text="0", position=((20, self.height - 50)),
                                     font_name="Edit Undo Line BRK", font_size=35, italic=True),
-                              Label(text="0", position=((self.width - 20, self.height - 50)), anchor_x="right",
+                              Label(text="0", position=((self.width - 100, self.height - 50)), anchor_x="left",
                                     font_name="Edit Undo Line BRK", font_size=35, italic=True)]
         self.add(self.players_score[0])
         self.add(self.players_score[1])
