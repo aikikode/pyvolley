@@ -25,8 +25,8 @@ class BackgroundLayer(Layer):
         self.add(bg, z=0)
         # Add moving player
         player = cocos.sprite.Sprite('player_1.png')
-        player.position = (200, 176/2 + 25)
-        action = MoveBy((300, 0), 2)
+        player.position = (150, 176/2 + 25)
+        action = MoveBy((150, 0), 1)
         player.do(Repeat(action + Reverse(action)))
         self.add(player, z=1)
         # Add bouncing ball
