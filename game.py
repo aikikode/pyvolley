@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 import random
 from cocos.director import director, cocos
-from cocos.layer import Layer
+from cocos.layer import Layer, ColorLayer
 from cocos.scene import Scene
+from cocos.text import Label
 from pyglet.window import key, pyglet
 import pymunk
 import constants
@@ -30,11 +31,11 @@ class Game(Layer):
         self.add(bg, z=-1)
         # Add player 1
         self.players = []
-        self.players.append(Player((200, 176/2), "player_1.png"))
+        self.players.append(Player((200, 176/2 + 50), "player_1.png"))
         self.space.add(self.players[0].body, self.players[0].body_shape, self.players[0].head_shape)
         self.add(self.players[0].sprite)
         # Add player 2
-        self.players.append(Player((self.width - 200, 176/2), "player_2.png"))
+        self.players.append(Player((self.width - 200, 176/2 + 50), "player_2.png"))
         self.space.add(self.players[1].body, self.players[1].body_shape, self.players[1].head_shape)
         self.add(self.players[1].sprite)
         # Add ball
@@ -50,6 +51,7 @@ class Game(Layer):
         self.space.add_collision_handler(0, 1, begin=self.on_player_hits_ball)
         self.space.add_collision_handler(0, 4, begin=lambda x, y: False)
         self.space.add_collision_handler(0, 3, begin=self.on_ball_hits_ground)
+        self.game_ended = False
         self.game_active = True
         self.schedule_pause_ball = True
         # Configure event manager to send game events to control module
@@ -77,8 +79,8 @@ class Game(Layer):
         # self.ball.body.sleep()
         self.ball.set_indicator_height(self.height - 10)
         self.add(self.ball.indicator)
-        self.players[0].reset((200, 176/2))
-        self.players[1].reset((self.width - 200, 176/2))
+        self.players[0].reset((200, 176/2 + 50))
+        self.players[1].reset((self.width - 200, 176/2 + 50))
         self.schedule_pause_ball = True
         self.game_active = True
 
@@ -136,18 +138,18 @@ class Game(Layer):
         space.add(ss)
         # Add ground
         ground_body = space.static_body
-        ground = pymunk.Segment(ground_body, (0, 0), (self.width, 0), 15)
+        ground = pymunk.Segment(ground_body, (0, 0), (self.width, 0), border_width)
         ground.elasticity = 0.5
         ground.collision_type = 3
         ground.friction = 0.99
         space.add(ground)
         # Add net
-        net = pymunk.Segment(space.static_body, (self.width / 2., 0), (self.width / 2., 400), 20)
+        net = pymunk.Segment(space.static_body, (self.width / 2., 0), (self.width / 2., 450), 20)
         net.elasticity = 0.95
         net.collision_type = 5
         space.add(net)
         net_sprite = cocos.sprite.Sprite('net.png')
-        net_sprite.position = (self.width / 2., 200)
+        net_sprite.position = (self.width / 2., 450 / 2.)
         self.add(net_sprite)
         # Add virtual net to prevent players from jumping to each other field
         virtual_net = pymunk.Segment(space.static_body, (self.width / 2., 0), (self.width / 2., max(self.height * 10, 1000)), 20)
@@ -175,21 +177,21 @@ class Game(Layer):
             self.pause_ball()
 
     def on_key_press(self, k, m):
-        if self.game_active:
+        if self.game_active and not self.game_ended:
             if k in (key.LEFT, key.RIGHT, key.UP):
                 if k == key.LEFT:
                     self.players[1].move_left()
                 elif k == key.RIGHT:
                     self.players[1].move_right()
                 elif k == key.UP:
-                    self.players[1].jump()
+                    self.players[1].start_jumping()
             elif k in (key.A, key.D, key.W):
                 if k == key.A:
                     self.players[0].move_left()
                 elif k == key.D:
                     self.players[0].move_right()
                 elif k == key.W:
-                    self.players[0].jump()
+                    self.players[0].start_jumping()
         return False
 
     def on_key_release(self, k, m):
@@ -198,22 +200,40 @@ class Game(Layer):
                     (k == key.RIGHT and self.players[1].body.velocity.x > 0):
                 self.players[1].stop()
             elif k == key.UP:
-                pass
+                self.players[1].stop_jumping()
         elif k in (key.A, key.D, key.W):
             if (k == key.A and self.players[0].body.velocity.x < 0) or\
                     (k == key.D and self.players[0].body.velocity.x > 0):
                 self.players[0].stop()
             elif k == key.W:
-                pass
+                self.players[0].stop_jumping()
         return False
+
+
+class EndGame(Layer):
+    def __init__(self):
+        super(EndGame, self).__init__()
+        self.background = ColorLayer(0, 0, 0, 170)
+        self.label = Label()
+
+    def reset(self):
+        self.remove(self.background)
+        self.remove(self.label)
+
+    def show_win_screen(self, text="", position=(0, 0)):
+        self.add(self.background)
+        self.label = Label(text, position, font_name='Edit Undo Line BRK', font_size=32, anchor_x='center')
+        self.add(self.label)
 
 
 def get_new_game():
     scene = Scene()
     game = Game()
     hud = Hud()
-    game_ctrl = GameCtrl(game, hud)
+    end_game = EndGame()
+    game_ctrl = GameCtrl(game, hud, end_game)
     scene.add(game, z=0, name="game layer")
     scene.add(game_ctrl, z=1, name="game control layer")
     scene.add(hud, z=2, name="hud layer")
+    scene.add(end_game, z=3, name="end game layer")
     return scene

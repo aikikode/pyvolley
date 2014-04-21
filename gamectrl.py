@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 from cocos.director import director
 from cocos.layer import Layer
+from cocos.scene import Scene
 import pyglet
 import constants
 import game
@@ -10,10 +11,11 @@ __author__ = 'aikikode'
 
 
 class GameCtrl(Layer):
-    def __init__(self, game, hud):
+    def __init__(self, game, hud, end_game):
         super(GameCtrl, self).__init__()
         self.game = game
         self.hud = hud
+        self.end_game = end_game
         self.game.event_manager.push_handlers(self)
         self.score = [0, 0]
         self.inning = self.game.get_ball_player()
@@ -37,8 +39,12 @@ class GameCtrl(Layer):
         if player == self.inning:
             self.score[player] += 1
             if self.score[player] >= constants.SCORE_LIMIT:
-                # TODO: win/loose screen
-                director.replace(game.get_new_game())
+                # Show win/loose screen
+                self.game.game_ended = True
+                self.update_scores()
+                self.end_game.show_win_screen("Player {} won!".format(player + 1),
+                                              (self.game.width / 2., self.game.height * 2 / 3.))
+                return
         else:
             self.inning = 1 if self.inning == 0 else 0
         self.update_scores()

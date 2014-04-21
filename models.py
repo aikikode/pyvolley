@@ -58,9 +58,12 @@ class Player(object):
         self.body_shape = body_shape
         self.sprite = cocos.sprite.Sprite(image)
         self.sprite.position = pos
+        self._is_jumping = False
 
     def update(self, dt):
         self.sprite.position = self.body.position
+        if self._is_jumping:
+            self.jump()
 
     def move_left(self, speed=constants.PLAYER_SPEED):
         self.body.velocity.x = -speed
@@ -70,8 +73,14 @@ class Player(object):
         self.body.velocity.x = speed
         self.body_shape.friction = 0
 
+    def start_jumping(self):
+        self._is_jumping = True
+
+    def stop_jumping(self):
+        self._is_jumping = False
+
     def jump(self, speed=constants.PLAYER_JUMP_SPEED):
-        if self.body.position[1] <= 90 + 20:
+        if self.body.position[1] <= 90 + 50:
             self.body.velocity.y = speed
 
     def stop(self):
