@@ -1,10 +1,12 @@
 #!/usr/bin/env python
+import ConfigParser
 import random
 from cocos.director import director, cocos
 from cocos.layer import Layer, ColorLayer
 from cocos.scene import Scene
 from cocos.text import Label
-from pyglet.window import key, pyglet
+import pyglet
+from pyglet.window import key
 import pymunk
 import constants
 from gamectrl import GameCtrl
@@ -44,12 +46,14 @@ class Game(Layer):
         self.create_container()
         #
         self.schedule(self.update)
-        self.space.add_collision_handler(1, 2, begin=self.on_player_hits_wall, post_solve=self.on_player_hits_wall)
+        #self.space.add_collision_handler(1, 2, begin=self.on_player_hits_wall, post_solve=self.on_player_hits_wall)
         self.space.add_collision_handler(1, 4, begin=self.on_player_hits_net, post_solve=self.on_player_hits_net)
+        self.space.add_collision_handler(1, 6, begin=self.on_player_hits_virtual_wall, post_solve=self.on_player_hits_virtual_wall)
         self.space.add_collision_handler(1, 5, begin=self.on_player_hits_net, post_solve=self.on_player_hits_net)
         self.space.add_collision_handler(1, 3, begin=self.on_player_hits_ground, post_solve=self.on_player_hits_ground)
         self.space.add_collision_handler(0, 1, begin=self.on_player_hits_ball)
         self.space.add_collision_handler(0, 4, begin=lambda x, y: False)
+        self.space.add_collision_handler(1, 2, begin=lambda x, y: False)
         self.space.add_collision_handler(0, 3, begin=self.on_ball_hits_ground)
         self.game_ended = False
         self.game_active = True
@@ -58,6 +62,31 @@ class Game(Layer):
         self.event_manager = pyglet.event.EventDispatcher()
         self.event_manager.register_event_type('on_ball_hits_ground')
         self.event_manager.register_event_type('on_player_hits_ball')
+        # Read settings and keybindings
+        self.config_player = [{}, {}]
+        self.read_settings()
+
+    def read_settings(self):
+        config = ConfigParser.RawConfigParser()
+        try:
+            config.read(constants.CONFIG_FILE)
+            self.config_player[0]['name'] = config.get("PLAYER1", "name")
+            self.config_player[0]['left'] = int(config.get("PLAYER1", "left"))
+            self.config_player[0]['right'] = int(config.get("PLAYER1", "right"))
+            self.config_player[0]['jump'] = int(config.get("PLAYER1", "jump"))
+            self.config_player[1]['name'] = config.get("PLAYER2", "name")
+            self.config_player[1]['left'] = int(config.get("PLAYER2", "left"))
+            self.config_player[1]['right'] = int(config.get("PLAYER2", "right"))
+            self.config_player[1]['jump'] = int(config.get("PLAYER2", "jump"))
+        except Exception as e:
+            self.config_player[0]['name'] = 'Player1'
+            self.config_player[0]['left'] = key.A
+            self.config_player[0]['right'] = key.D
+            self.config_player[0]['jump'] = key.W
+            self.config_player[1]['name'] = 'Player2'
+            self.config_player[1]['left'] = key.LEFT
+            self.config_player[1]['right'] = key.RIGHT
+            self.config_player[1]['jump'] = key.UP
 
     def reset_ball(self, player=None):
         try:
@@ -105,6 +134,15 @@ class Game(Layer):
             self.players[1].body.position.x = self.width / 2 + 60 + 15
         return True
 
+    def on_player_hits_virtual_wall(self, space, arbiter):
+        if arbiter.shapes[0] in [self.players[0].body_shape, self.players[0].head_shape]:
+            self.players[0].body.velocity.x = 0
+            self.players[0].body.position.x = 0
+        elif arbiter.shapes[0] in [self.players[1].body_shape, self.players[1].head_shape]:
+            self.players[1].body.velocity.x = 0
+            self.players[1].body.position.x = self.width
+        return True
+
     def on_player_hits_ground(self, space, arbiter):
         if arbiter.shapes[0] in [self.players[0].body_shape]:
             self.players[0].body.velocity.y = 0
@@ -113,6 +151,8 @@ class Game(Layer):
         return True
 
     def on_player_hits_ball(self, space, arbiter):
+        if not self.game_active:
+            return False
         self.event_manager.dispatch_event('on_player_hits_ball', self)
         if self.ball.body.is_sleeping:
             self.ball.body.activate()
@@ -126,7 +166,7 @@ class Game(Layer):
 
     def create_container(self):
         space = self.space
-        # Add left and right screen borders
+        # Add left and right screen borders for ball
         border_width = 50
         ss = [
             pymunk.Segment(space.static_body, (self.width + border_width, 0), (self.width + border_width, max(self.height * 10, 1000)), border_width),
@@ -135,6 +175,16 @@ class Game(Layer):
         for s in ss:
             s.elasticity = 0.95
             s.collision_type = 2
+        space.add(ss)
+        # Add left and right screen borders for player
+        border_width = 50
+        ss = [
+            pymunk.Segment(space.static_body, (self.width + border_width, 0), (self.width + border_width, max(self.height * 10, 1000)), 5),
+            pymunk.Segment(space.static_body, (-border_width, 0), (-border_width, max(self.height * 10, 1000)), 5)
+        ]
+        for s in ss:
+            s.elasticity = 0
+            s.collision_type = 6
         space.add(ss)
         # Add ground
         ground_body = space.static_body
@@ -178,35 +228,31 @@ class Game(Layer):
 
     def on_key_press(self, k, m):
         if self.game_active and not self.game_ended:
-            if k in (key.LEFT, key.RIGHT, key.UP):
-                if k == key.LEFT:
-                    self.players[1].move_left()
-                elif k == key.RIGHT:
-                    self.players[1].move_right()
-                elif k == key.UP:
-                    self.players[1].start_jumping()
-            elif k in (key.A, key.D, key.W):
-                if k == key.A:
-                    self.players[0].move_left()
-                elif k == key.D:
-                    self.players[0].move_right()
-                elif k == key.W:
-                    self.players[0].start_jumping()
+            if k == self.config_player[1]['left']:
+                self.players[1].move_left()
+            elif k == self.config_player[1]['right']:
+                self.players[1].move_right()
+            elif k == self.config_player[1]['jump']:
+                self.players[1].start_jumping()
+            elif k == self.config_player[0]['left']:
+                self.players[0].move_left()
+            elif k == self.config_player[0]['right']:
+                self.players[0].move_right()
+            elif k == self.config_player[0]['jump']:
+                self.players[0].start_jumping()
         return False
 
     def on_key_release(self, k, m):
-        if k in (key.LEFT, key.RIGHT, key.UP):
-            if (k == key.LEFT and self.players[1].body.velocity.x < 0) or\
-                    (k == key.RIGHT and self.players[1].body.velocity.x > 0):
-                self.players[1].stop()
-            elif k == key.UP:
-                self.players[1].stop_jumping()
-        elif k in (key.A, key.D, key.W):
-            if (k == key.A and self.players[0].body.velocity.x < 0) or\
-                    (k == key.D and self.players[0].body.velocity.x > 0):
-                self.players[0].stop()
-            elif k == key.W:
-                self.players[0].stop_jumping()
+        if (k == self.config_player[1]['left'] and self.players[1].body.velocity.x < 0) or\
+                (k == self.config_player[1]['right'] and self.players[1].body.velocity.x > 0):
+            self.players[1].stop()
+        elif k == self.config_player[1]['jump']:
+            self.players[1].stop_jumping()
+        if (k == self.config_player[0]['left'] and self.players[0].body.velocity.x < 0) or\
+                    (k == self.config_player[0]['right'] and self.players[0].body.velocity.x > 0):
+            self.players[0].stop()
+        elif k == self.config_player[0]['jump']:
+            self.players[0].stop_jumping()
         return False
 
 

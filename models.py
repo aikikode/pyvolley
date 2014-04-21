@@ -18,7 +18,7 @@ class Ball(object):
         self.body.velocity_limit = constants.BALL_VELOCITY_LIMIT
         self.body.apply_force(constants.BALL_ADDITIONAL_FORCE)
         shape = pymunk.Circle(self.body, self.radius, (0, 0))
-        shape.elasticity = 0.95
+        shape.elasticity = 0.99
         shape.friction = 0.9
         shape.collision_type = 0
         self.shape = shape
@@ -47,12 +47,12 @@ class Player(object):
         head_shape = pymunk.Circle(self.body, self.head_radius, (0, 45))
         head_shape.layers = 0b001
         head_shape.collision_type = 1
-        head_shape.elasticity = 0.99
+        head_shape.elasticity = 2
         head_shape.friction = 0.8
         self.head_shape = head_shape
         body_shape = pymunk.Circle(self.body, self.body_radius, (0, -30))
         body_shape.layers = 0b100
-        body_shape.elasticity = 0.99
+        body_shape.elasticity = 2
         body_shape.collision_type = 1
         body_shape.friction = 0.9
         self.body_shape = body_shape
