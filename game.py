@@ -12,9 +12,6 @@ from models import Ball, Player
 
 __author__ = 'aikikode'
 
-pyglet.resource.path = [constants.IMAGES_RESOURCE]
-pyglet.resource.reindex()
-
 SPEED = constants.PLAYER_SPEED
 JUMP_SPEED = constants.PLAYER_JUMP_SPEED
 

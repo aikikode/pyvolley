@@ -11,9 +11,6 @@ import constants
 
 __author__ = 'aikikode'
 
-pyglet.resource.path = [constants.IMAGES_RESOURCE]
-pyglet.resource.reindex()
-
 
 class BackgroundLayer(Layer):
     def __init__(self):
