@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import ConfigParser
 import random
+
 from cocos.director import director, cocos
 from cocos.layer import Layer, ColorLayer
 from cocos.scene import Scene
@@ -8,10 +9,12 @@ from cocos.text import Label
 import pyglet
 from pyglet.window import key
 import pymunk
+
 import constants
 from gamectrl import GameCtrl
 from hud import Hud
 from models import Ball, Player
+
 
 __author__ = 'aikikode'
 
@@ -28,34 +31,34 @@ class Game(Layer):
         bg = cocos.sprite.Sprite('background.png')
         bg.position = (self.width / 2., self.height / 2.)
         self.add(bg, z=-1)
+        # Save all sprites that need to be rendered on top and render them last
         self.top_sprites = []
         # Add walls and net
         self.create_container()
-        #
         # Add player 1
         self.players = []
         self.players.append(Player((200, 176/2 + constants.GROUND_OFFSET), "player_1.png"))
         self.space.add(self.players[0].body, self.players[0].body_shape, self.players[0].head_shape)
         self.add(self.players[0].shadow_sprite)
+        self.top_sprites.append(self.players[0].sprite)
         # Add player 2
         self.players.append(Player((self.width - 200, 176/2 + constants.GROUND_OFFSET), "player_2.png"))
         self.space.add(self.players[1].body, self.players[1].body_shape, self.players[1].head_shape)
         self.add(self.players[1].shadow_sprite)
+        self.top_sprites.append(self.players[1].sprite)
         # Add ball
         self.reset_ball()
-        self.add(self.players[0].sprite)
-        self.add(self.players[1].sprite)
-        # self.schedule(self.update)
+        # Use 'schedule_interval' instead of 'schedule' to have control over game speed
         self.schedule_interval(self.update, 1./constants.FPS)
-        #self.space.add_collision_handler(1, 2, begin=self.on_player_hits_wall, post_solve=self.on_player_hits_wall)
+        # Add custom collision handlers
+        self.space.add_collision_handler(1, 2, begin=lambda x, y: False)  # Player should not collide with 'ball wall'
         self.space.add_collision_handler(1, 4, begin=self.on_player_hits_net, post_solve=self.on_player_hits_net)
         self.space.add_collision_handler(1, 6, begin=self.on_player_hits_virtual_wall, post_solve=self.on_player_hits_virtual_wall)
         self.space.add_collision_handler(1, 5, begin=self.on_player_hits_net, post_solve=self.on_player_hits_net)
         self.space.add_collision_handler(1, 3, begin=self.on_player_hits_ground, post_solve=self.on_player_hits_ground)
         self.space.add_collision_handler(0, 1, begin=self.on_player_hits_ball)
-        self.space.add_collision_handler(0, 4, begin=lambda x, y: False)
-        self.space.add_collision_handler(1, 2, begin=lambda x, y: False)
         self.space.add_collision_handler(0, 3, begin=self.on_ball_hits_ground)
+        self.space.add_collision_handler(0, 4, begin=lambda x, y: False)  # Ball should not collide with 'player walls'
         self.game_ended = False
         self.game_active = True
         self.schedule_pause_ball = True
@@ -81,6 +84,7 @@ class Game(Layer):
             self.config_player[1]['right'] = int(config.get("PLAYER2", "right"))
             self.config_player[1]['jump'] = int(config.get("PLAYER2", "jump"))
         except Exception as e:
+            # Default controls
             self.config_player[0]['name'] = 'Player1'
             self.config_player[0]['left'] = key.A
             self.config_player[0]['right'] = key.D
@@ -112,29 +116,20 @@ class Game(Layer):
         self.space.add(self.ball.body, self.ball.shape)
         self.add(self.ball.shadow_sprite)
         self.add(self.ball.sprite)
-        # Now add players sprites after the ball shadow
-        self.add(self.players[0].sprite)
-        self.add(self.players[1].sprite)
         self.ball.set_indicator_height(self.height - 10)
         self.add(self.ball.indicator)
         self.players[0].reset((200, 176/2 + constants.GROUND_OFFSET))
         self.players[1].reset((self.width - 200, 176/2 + constants.GROUND_OFFSET))
         self.schedule_pause_ball = True
         self.game_active = True
+        self.render_top_sprites()
+
+    def render_top_sprites(self):
         for sprite in self.top_sprites:
             self.add(sprite)
 
     def pause_ball(self):
         self.ball.body.sleep()
-
-    def on_player_hits_wall(self, space, arbiter):
-        if arbiter.shapes[0] in [self.players[0].body_shape, self.players[0].head_shape]:
-            self.players[0].body.velocity.x = 0
-            self.players[0].body.position.x = 70
-        elif arbiter.shapes[0] in [self.players[1].body_shape, self.players[1].head_shape]:
-            self.players[1].body.velocity.x = 0
-            self.players[1].body.position.x = self.width - 70
-        return True
 
     def on_player_hits_net(self, space, arbiter):
         if arbiter.shapes[0] in [self.players[0].body_shape, self.players[0].head_shape]:
@@ -222,15 +217,12 @@ class Game(Layer):
         space.add(virtual_net)
 
     def stop_player_sliding(self):
-        # Add simple motor to prevent players from sliding
+        # Add simple motor to prevent players from sliding on the ground
         self.space.add(pymunk.constraint.SimpleMotor(self.players[0].body, self.ground_body, 0))
         self.space.add(pymunk.constraint.SimpleMotor(self.players[1].body, self.ground_body, 0))
 
     def get_ball_player(self):
         return 0 if self.ball.body.position[0] <= self.width / 2. else 1
-
-    def get_other_player(self, player):
-        return self.players[1] if player == self.players[0] else self.players[0]
 
     def update(self, dt):
         dt = constants.GAME_SPEED / float(constants.FPS)

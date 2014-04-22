@@ -1,8 +1,9 @@
 #!/usr/bin/env python
-import cocos
 import math
-import pyglet
+
+import cocos
 import pymunk
+
 import constants
 
 __author__ = 'aikikode'
@@ -23,7 +24,7 @@ class Ball(object):
         shape.collision_type = 0
         self.shape = shape
         self.sprite = cocos.sprite.Sprite('volleyball.png')
-        self.sprite.scale = 5/6.
+        self.sprite.scale = 5 / 6.
         self.sprite.position = pos
         self.shadow_sprite = cocos.sprite.Sprite('ball_shadow.png')
         self.shadow_sprite.position = (pos[0] + (pos[1] - constants.GROUND_OFFSET) / 1.5, constants.GROUND_OFFSET)
@@ -44,18 +45,19 @@ class Player(object):
     def __init__(self, pos, image):
         self.head_radius = 45
         self.body_radius = 60
-        self.body = pymunk.Body(constants.PLAYER_MASS, pymunk.inf)
+        self.body = pymunk.Body(constants.PLAYER_MASS,
+                                pymunk.inf)  # use inf inertia to prevent player head from falling to the ground
         self.body.position = pos
         self.body.apply_force(constants.PLAYER_ADDITIONAL_FORCE)
         head_shape = pymunk.Circle(self.body, self.head_radius, (0, 45))
-        head_shape.layers = 0b001
+        head_shape.layers = 0b001  # use layers to prevent body and head collision
         head_shape.collision_type = 1
-        head_shape.elasticity = 2
+        head_shape.elasticity = 2  # >1 to increase ball speed on impact
         head_shape.friction = 0.8
         self.head_shape = head_shape
         body_shape = pymunk.Circle(self.body, self.body_radius, (0, -30))
         body_shape.layers = 0b100
-        body_shape.elasticity = 2
+        body_shape.elasticity = 2  # >1 to increase ball speed on impact
         body_shape.collision_type = 1
         body_shape.friction = 0.9
         self.body_shape = body_shape

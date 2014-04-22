@@ -1,6 +1,8 @@
 #!/usr/bin/env python
-#from __future__ import division, print_function
+from __future__ import division, print_function
 import ConfigParser
+import os
+import stat
 import cocos
 from cocos.actions import JumpBy, Repeat, MoveBy, Reverse
 from cocos.director import director, cocos
@@ -10,8 +12,8 @@ from cocos.scene import Scene
 from cocos.text import Label
 import pyglet
 from pyglet.window import key
-import constants
-import os, stat
+
+from pyvolley import game, constants
 
 __author__ = 'aikikode'
 
@@ -62,7 +64,6 @@ class MainMenu(Menu):
         self.create_menu(items, shake(), shake_back())
 
     def on_start_game(self):
-        import game
         director.push(game.get_new_game())
 
     def on_options(self):

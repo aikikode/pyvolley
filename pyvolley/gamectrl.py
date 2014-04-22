@@ -1,11 +1,11 @@
 #!/usr/bin/env python
-from cocos.director import director
-from cocos.layer import Layer
-from cocos.scene import Scene
-import pyglet
-import constants
-import game
 from threading import Timer
+
+from cocos.layer import Layer
+import pyglet
+
+import constants
+
 
 __author__ = 'aikikode'
 
