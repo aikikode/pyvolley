@@ -25,6 +25,8 @@ class Ball(object):
         self.sprite = cocos.sprite.Sprite('volleyball.png')
         self.sprite.scale = 5/6.
         self.sprite.position = pos
+        self.shadow_sprite = cocos.sprite.Sprite('ball_shadow.png')
+        self.shadow_sprite.position = (pos[0] + (pos[1] - constants.GROUND_OFFSET) / 1.5, constants.GROUND_OFFSET)
         self.indicator = cocos.sprite.Sprite('ball_indicator.png')
         self.indicator.position = (pos[0], 0)
 
@@ -32,7 +34,8 @@ class Ball(object):
         self.indicator.position = (self.indicator.position[0], height)
 
     def update(self, dt):
-        self.sprite.position = self.body.position
+        self.sprite.position = pos = self.body.position
+        self.shadow_sprite.position = (pos[0] + (pos[1] - constants.GROUND_OFFSET) / 1.5, constants.GROUND_OFFSET)
         self.sprite.rotation = -self.body.angle * 180. / math.pi
         self.indicator.position = (self.sprite.position[0], self.indicator.position[1])
 
@@ -58,10 +61,13 @@ class Player(object):
         self.body_shape = body_shape
         self.sprite = cocos.sprite.Sprite(image)
         self.sprite.position = pos
+        self.shadow_sprite = cocos.sprite.Sprite('player_shadow.png')
+        self.shadow_sprite.position = (pos[0] + (pos[1] - constants.GROUND_OFFSET) / 1.5, constants.GROUND_OFFSET)
         self._is_jumping = False
 
     def update(self, dt):
-        self.sprite.position = self.body.position
+        self.sprite.position = pos = self.body.position
+        self.shadow_sprite.position = (pos[0] + (pos[1] - constants.GROUND_OFFSET) / 1.5, constants.GROUND_OFFSET)
         if self._is_jumping:
             self.jump()
 
@@ -80,7 +86,7 @@ class Player(object):
         self._is_jumping = False
 
     def jump(self, speed=constants.PLAYER_JUMP_SPEED):
-        if self.body.position[1] <= 90 + 50:
+        if self.body.position[1] <= 90 + constants.GROUND_OFFSET:
             self.body.velocity.y = speed
 
     def stop(self):
