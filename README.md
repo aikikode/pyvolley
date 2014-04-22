@@ -1,7 +1,7 @@
 pyvolley
 ========
 
-Python clone of famous [blobby volley](http://www.blobby-volley.net/) using cocos2d for GUI and pymunk for physics
+Python clone of famous [blobby volley](http://www.blobby-volley.net/) using [cocos2d](http://cocos2d.org/) for GUI and [pymunk](http://www.pymunk.org) for physics
 
 ###Screenshots
 ![](http://i.imgur.com/k0gDp2o.png)
