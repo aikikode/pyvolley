@@ -57,7 +57,7 @@ class MainMenu(Menu):
 
         items = [MenuItem('Start', self.on_start_game),
                  MenuItem('Options', self.on_options),
-                 MenuItem('Scores', self.on_scores),
+                 # MenuItem('Scores', self.on_scores),
                  MenuItem('Quit', self.on_quit)]
         self.create_menu(items, shake(), shake_back())
 
