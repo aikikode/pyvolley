@@ -31,21 +31,19 @@ class Game(Layer):
         bg = cocos.sprite.Sprite('background.png')
         bg.position = (self.width / 2., self.height / 2.)
         self.add(bg, z=-1)
-        # Save all sprites that need to be rendered on top and render them last
-        self.top_sprites = []
         # Add walls and net
         self.create_container()
         # Add player 1
         self.players = []
         self.players.append(Player((200, 176/2 + constants.GROUND_OFFSET), "player_1.png"))
         self.space.add(self.players[0].body, self.players[0].body_shape, self.players[0].head_shape)
-        self.add(self.players[0].shadow_sprite)
-        self.top_sprites.append(self.players[0].sprite)
+        self.add(self.players[0].shadow_sprite, z=1)
+        self.add(self.players[0].sprite, z=2)
         # Add player 2
         self.players.append(Player((self.width - 200, 176/2 + constants.GROUND_OFFSET), "player_2.png"))
         self.space.add(self.players[1].body, self.players[1].body_shape, self.players[1].head_shape)
-        self.add(self.players[1].shadow_sprite)
-        self.top_sprites.append(self.players[1].sprite)
+        self.add(self.players[1].shadow_sprite, z=1)
+        self.add(self.players[1].sprite, z=2)
         # Add ball
         self.reset_ball()
         # Use 'schedule_interval' instead of 'schedule' to have control over game speed
@@ -100,9 +98,6 @@ class Game(Layer):
             self.remove(self.ball.sprite)
             self.remove(self.ball.shadow_sprite)
             self.remove(self.ball.indicator)
-            # Remove player sprites to add them after on top of ball shadow
-            self.remove(self.players[0].sprite)
-            self.remove(self.players[1].sprite)
         except AttributeError:
             pass
         # Add ball
@@ -114,19 +109,14 @@ class Game(Layer):
         else:
             self.ball = Ball((3 * self.width / 4., 400))
         self.space.add(self.ball.body, self.ball.shape)
-        self.add(self.ball.shadow_sprite)
-        self.add(self.ball.sprite)
+        self.add(self.ball.shadow_sprite, z=1)
+        self.add(self.ball.sprite, z=3)
         self.ball.set_indicator_height(self.height - 10)
-        self.add(self.ball.indicator)
+        self.add(self.ball.indicator, z=4)
         self.players[0].reset((200, 176/2 + constants.GROUND_OFFSET))
         self.players[1].reset((self.width - 200, 176/2 + constants.GROUND_OFFSET))
         self.schedule_pause_ball = True
         self.game_active = True
-        self.render_top_sprites()
-
-    def render_top_sprites(self):
-        for sprite in self.top_sprites:
-            self.add(sprite)
 
     def pause_ball(self):
         self.ball.body.sleep()
@@ -206,10 +196,10 @@ class Game(Layer):
         space.add(net)
         net_shadow_sprite = cocos.sprite.Sprite('net_shadow.png')
         net_shadow_sprite.position = (self.width / 2. + 150, 50)
-        self.add(net_shadow_sprite)
+        self.add(net_shadow_sprite, z=0)
         net_sprite = cocos.sprite.Sprite('net.png')
         net_sprite.position = (self.width / 2., 450 / 2.)
-        self.top_sprites.append(net_sprite)
+        self.add(net_sprite, z=2)
         # Add virtual net to prevent players from jumping to each other field
         virtual_net = pymunk.Segment(space.static_body, (self.width / 2., 0), (self.width / 2., max(self.height * 10, 1000)), 20)
         virtual_net.elasticity = 0.95
