@@ -25,6 +25,7 @@ class Game(Layer):
         super(Game, self).__init__()
         self.width, self.height = director.get_window_size()
         self.space = pymunk.Space()
+        self.space.sleep_time_threshold = 1000
         self.space.gravity = constants.GRAVITY
         # Background image
         bg = cocos.sprite.Sprite('background.png')
@@ -36,9 +37,6 @@ class Game(Layer):
         self.players = []
         self.players.append(Player((200, 176 / 2 + constants.GROUND_OFFSET), "player_1.png"))
         self.space.add(self.players[0].body, self.players[0].body_shape, self.players[0].head_shape)
-
-        # self.players[0].body.collision_type = 1
-        # , self.players[0].body_shape, self.players[0].head_shape)
         self.add(self.players[0].shadow_sprite, z=1)
         self.add(self.players[0].sprite, z=2)
         # Add player 2
@@ -52,7 +50,7 @@ class Game(Layer):
         self.schedule_interval(self.update, 1. / constants.FPS)
         # Add custom collision handlers
         ch = self.space.add_collision_handler(1, 2)  # Player should not collide with 'ball wall'
-        ch.begin = lambda x, y: False  # Player should not collide with 'ball wall'
+        ch.begin = lambda x, y, z: False  # Player should not collide with 'ball wall'
         ch = self.space.add_collision_handler(1, 4)
         ch.begin = self.on_player_hits_net
         ch.post_solve = self.on_player_hits_net
@@ -218,16 +216,21 @@ class Game(Layer):
         net_sprite.position = (self.width / 2., 450 / 2.)
         self.add(net_sprite, z=2)
         # Add virtual net to prevent players from jumping to each other field
-        virtual_net = pymunk.Segment(space.static_body, (self.width / 2., 0),
-                                     (self.width / 2., max(self.height * 10, 1000)), 20)
+        virtual_net = pymunk.Segment(
+            space.static_body,
+            (self.width / 2., 0),
+            (self.width / 2., max(self.height * 10, 1000)),
+            20
+        )
         virtual_net.elasticity = 0.95
         virtual_net.collision_type = 4
         space.add(virtual_net)
 
     def stop_player_sliding(self):
-        # Add simple motor to prevent players from sliding on the ground
-        self.space.add(pymunk.constraint.SimpleMotor(self.players[0].body, self.ground_body, 0))
-        self.space.add(pymunk.constraint.SimpleMotor(self.players[1].body, self.ground_body, 0))
+        # FIXME: Add simple motor to prevent players from sliding on the ground
+        #self.space.add(pymunk.SimpleMotor(self.players[0].body, self.ground_body, 0))
+        #self.space.add(pymunk.SimpleMotor(self.players[1].body, self.ground_body, 0))
+        pass
 
     def get_ball_player(self):
         return 0 if self.ball.body.position[0] <= self.width / 2. else 1

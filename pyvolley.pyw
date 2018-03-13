@@ -24,8 +24,7 @@ class BackgroundLayer(Layer):
         self.width, self.height = director.get_window_size()
         # Background image
         bg = cocos.sprite.Sprite('background.png')
-        # bg.position = (self.width / 2., self.height / 2.)
-        bg.position = (0, 0)
+        bg.position = (self.width / 2., self.height / 2.)
         self.add(bg, z=0)
         # Add moving player
         player = cocos.sprite.Sprite('player_1.png')
