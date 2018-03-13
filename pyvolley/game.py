@@ -15,7 +15,6 @@ from gamectrl import GameCtrl
 from hud import Hud
 from models import Ball, Player
 
-
 __author__ = 'aikikode'
 
 
@@ -35,28 +34,43 @@ class Game(Layer):
         self.create_container()
         # Add player 1
         self.players = []
-        self.players.append(Player((200, 176/2 + constants.GROUND_OFFSET), "player_1.png"))
+        self.players.append(Player((200, 176 / 2 + constants.GROUND_OFFSET), "player_1.png"))
         self.space.add(self.players[0].body, self.players[0].body_shape, self.players[0].head_shape)
+
+        # self.players[0].body.collision_type = 1
+        # , self.players[0].body_shape, self.players[0].head_shape)
         self.add(self.players[0].shadow_sprite, z=1)
         self.add(self.players[0].sprite, z=2)
         # Add player 2
-        self.players.append(Player((self.width - 200, 176/2 + constants.GROUND_OFFSET), "player_2.png"))
+        self.players.append(Player((self.width - 200, 176 / 2 + constants.GROUND_OFFSET), "player_2.png"))
         self.space.add(self.players[1].body, self.players[1].body_shape, self.players[1].head_shape)
         self.add(self.players[1].shadow_sprite, z=1)
         self.add(self.players[1].sprite, z=2)
         # Add ball
         self.reset_ball()
         # Use 'schedule_interval' instead of 'schedule' to have control over game speed
-        self.schedule_interval(self.update, 1./constants.FPS)
+        self.schedule_interval(self.update, 1. / constants.FPS)
         # Add custom collision handlers
-        self.space.add_collision_handler(1, 2, begin=lambda x, y: False)  # Player should not collide with 'ball wall'
-        self.space.add_collision_handler(1, 4, begin=self.on_player_hits_net, post_solve=self.on_player_hits_net)
-        self.space.add_collision_handler(1, 6, begin=self.on_player_hits_virtual_wall, post_solve=self.on_player_hits_virtual_wall)
-        self.space.add_collision_handler(1, 5, begin=self.on_player_hits_net, post_solve=self.on_player_hits_net)
-        self.space.add_collision_handler(1, 3, begin=self.on_player_hits_ground, post_solve=self.on_player_hits_ground)
-        self.space.add_collision_handler(0, 1, begin=self.on_player_hits_ball)
-        self.space.add_collision_handler(0, 3, begin=self.on_ball_hits_ground)
-        self.space.add_collision_handler(0, 4, begin=lambda x, y: False)  # Ball should not collide with 'player walls'
+        ch = self.space.add_collision_handler(1, 2)  # Player should not collide with 'ball wall'
+        ch.begin = lambda x, y: False  # Player should not collide with 'ball wall'
+        ch = self.space.add_collision_handler(1, 4)
+        ch.begin = self.on_player_hits_net
+        ch.post_solve = self.on_player_hits_net
+        ch = self.space.add_collision_handler(1, 6)
+        ch.begin = self.on_player_hits_virtual_wall
+        ch.post_solve = self.on_player_hits_virtual_wall
+        ch = self.space.add_collision_handler(1, 5)
+        ch.begin = self.on_player_hits_net
+        ch.post_solve = self.on_player_hits_net
+        ch = self.space.add_collision_handler(1, 3)
+        ch.begin = self.on_player_hits_ground
+        ch.post_solve = self.on_player_hits_ground
+        ch = self.space.add_collision_handler(0, 1)
+        ch.begin = self.on_player_hits_ball
+        ch = self.space.add_collision_handler(0, 3)
+        ch.begin = self.on_ball_hits_ground
+        ch = self.space.add_collision_handler(0, 4)
+        ch.begin = lambda x, y: False  # Ball should not collide with 'player walls'
         self.game_ended = False
         self.game_active = True
         self.schedule_pause_ball = True
@@ -81,7 +95,7 @@ class Game(Layer):
             self.config_player[1]['left'] = int(config.get("PLAYER2", "left"))
             self.config_player[1]['right'] = int(config.get("PLAYER2", "right"))
             self.config_player[1]['jump'] = int(config.get("PLAYER2", "jump"))
-        except Exception as e:
+        except:
             # Default controls
             self.config_player[0]['name'] = 'Player1'
             self.config_player[0]['left'] = key.A
@@ -113,15 +127,15 @@ class Game(Layer):
         self.add(self.ball.sprite, z=3)
         self.ball.set_indicator_height(self.height - 10)
         self.add(self.ball.indicator, z=4)
-        self.players[0].reset((200, 176/2 + constants.GROUND_OFFSET))
-        self.players[1].reset((self.width - 200, 176/2 + constants.GROUND_OFFSET))
+        self.players[0].reset((200, 176 / 2 + constants.GROUND_OFFSET))
+        self.players[1].reset((self.width - 200, 176 / 2 + constants.GROUND_OFFSET))
         self.schedule_pause_ball = True
         self.game_active = True
 
     def pause_ball(self):
         self.ball.body.sleep()
 
-    def on_player_hits_net(self, space, arbiter):
+    def on_player_hits_net(self, arbiter, space, data):
         if arbiter.shapes[0] in [self.players[0].body_shape, self.players[0].head_shape]:
             self.players[0].body.velocity.x = 0
             self.players[0].body.position.x = self.width / 2 - 60 - 15
@@ -130,7 +144,7 @@ class Game(Layer):
             self.players[1].body.position.x = self.width / 2 + 60 + 15
         return True
 
-    def on_player_hits_virtual_wall(self, space, arbiter):
+    def on_player_hits_virtual_wall(self, arbiter, space, data):
         if arbiter.shapes[0] in [self.players[0].body_shape, self.players[0].head_shape]:
             self.players[0].body.velocity.x = 0
             self.players[0].body.position.x = 0
@@ -139,14 +153,14 @@ class Game(Layer):
             self.players[1].body.position.x = self.width
         return True
 
-    def on_player_hits_ground(self, space, arbiter):
+    def on_player_hits_ground(self, arbiter, space, data):
         if arbiter.shapes[0] in [self.players[0].body_shape]:
             self.players[0].body.velocity.y = 0
         elif arbiter.shapes[0] in [self.players[1].body_shape]:
             self.players[1].body.velocity.y = 0
         return True
 
-    def on_player_hits_ball(self, space, arbiter):
+    def on_player_hits_ball(self, arbiter, space, data):
         if not self.game_active:
             return False
         self.event_manager.dispatch_event('on_player_hits_ball', self)
@@ -154,7 +168,7 @@ class Game(Layer):
             self.ball.body.activate()
         return True
 
-    def on_ball_hits_ground(self, space, arbiter):
+    def on_ball_hits_ground(self, arbiter, space, data):
         if self.game_active:
             self.game_active = False
             self.event_manager.dispatch_event('on_ball_hits_ground', self)
@@ -165,8 +179,10 @@ class Game(Layer):
         # Add left and right screen borders for ball
         border_width = 50
         ss = [
-            pymunk.Segment(space.static_body, (self.width + border_width, 0), (self.width + border_width, max(self.height * 10, 1000)), border_width),
-            pymunk.Segment(space.static_body, (-border_width, 0), (-border_width, max(self.height * 10, 1000)), border_width)
+            pymunk.Segment(space.static_body, (self.width + border_width, 0),
+                           (self.width + border_width, max(self.height * 10, 1000)), border_width),
+            pymunk.Segment(space.static_body, (-border_width, 0), (-border_width, max(self.height * 10, 1000)),
+                           border_width)
         ]
         for s in ss:
             s.elasticity = 0.95
@@ -175,7 +191,8 @@ class Game(Layer):
         # Add left and right screen borders for player
         border_width = 50
         ss = [
-            pymunk.Segment(space.static_body, (self.width + border_width, 0), (self.width + border_width, max(self.height * 10, 1000)), 5),
+            pymunk.Segment(space.static_body, (self.width + border_width, 0),
+                           (self.width + border_width, max(self.height * 10, 1000)), 5),
             pymunk.Segment(space.static_body, (-border_width, 0), (-border_width, max(self.height * 10, 1000)), 5)
         ]
         for s in ss:
@@ -201,7 +218,8 @@ class Game(Layer):
         net_sprite.position = (self.width / 2., 450 / 2.)
         self.add(net_sprite, z=2)
         # Add virtual net to prevent players from jumping to each other field
-        virtual_net = pymunk.Segment(space.static_body, (self.width / 2., 0), (self.width / 2., max(self.height * 10, 1000)), 20)
+        virtual_net = pymunk.Segment(space.static_body, (self.width / 2., 0),
+                                     (self.width / 2., max(self.height * 10, 1000)), 20)
         virtual_net.elasticity = 0.95
         virtual_net.collision_type = 4
         space.add(virtual_net)
@@ -241,13 +259,13 @@ class Game(Layer):
         return False
 
     def on_key_release(self, k, m):
-        if (k == self.config_player[1]['left'] and self.players[1].body.velocity.x < 0) or\
-                (k == self.config_player[1]['right'] and self.players[1].body.velocity.x > 0):
+        if (k == self.config_player[1]['left'] and self.players[1].body.velocity.x < 0) or \
+            (k == self.config_player[1]['right'] and self.players[1].body.velocity.x > 0):
             self.players[1].stop()
         elif k == self.config_player[1]['jump']:
             self.players[1].stop_jumping()
-        if (k == self.config_player[0]['left'] and self.players[0].body.velocity.x < 0) or\
-                    (k == self.config_player[0]['right'] and self.players[0].body.velocity.x > 0):
+        if (k == self.config_player[0]['left'] and self.players[0].body.velocity.x < 0) or \
+            (k == self.config_player[0]['right'] and self.players[0].body.velocity.x > 0):
             self.players[0].stop()
         elif k == self.config_player[0]['jump']:
             self.players[0].stop_jumping()

@@ -12,12 +12,14 @@ How to install
 --------------
 ###Install dependencies
 ####Linux users:
+
 ```bash
-pip install cocos2d
-pip install pymunk
+pip install -r pip.requirements
 ```
+
 ###Run the game
 ####Linux users:
+
 ```bash
 python ./pyvolley.pyw
 ```
