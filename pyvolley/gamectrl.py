@@ -4,7 +4,7 @@ from threading import Timer
 from cocos.layer import Layer
 import pyglet
 
-import constants
+from . import constants
 
 
 __author__ = 'aikikode'

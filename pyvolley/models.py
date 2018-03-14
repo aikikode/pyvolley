@@ -4,7 +4,7 @@ import math
 import cocos
 import pymunk
 
-import constants
+from . import constants
 
 __author__ = 'aikikode'
 
@@ -96,7 +96,7 @@ class Player(object):
         self.body_shape.friction = 1
 
     def reset(self, pos):
+        self.body.reset_forces()
         self.body.position = pos
         self.body.velocity = ((0, 0))
-        self.body.reset_forces()
         self.body.apply_force(constants.PLAYER_ADDITIONAL_FORCE)

@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 from __future__ import division, print_function
-import ConfigParser
+try:
+    import ConfigParser
+except ModuleNotFoundError:
+    import configparser as ConfigParser
 import os
 import stat
 import cocos

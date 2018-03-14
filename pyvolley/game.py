@@ -1,5 +1,8 @@
 #!/usr/bin/env python
-import ConfigParser
+try:
+    import ConfigParser
+except ModuleNotFoundError:
+    import configparser as ConfigParser
 import random
 
 from cocos.director import director, cocos
@@ -10,10 +13,10 @@ import pyglet
 from pyglet.window import key
 import pymunk
 
-import constants
-from gamectrl import GameCtrl
-from hud import Hud
-from models import Ball, Player
+from . import constants
+from .gamectrl import GameCtrl
+from .hud import Hud
+from .models import Ball, Player
 
 
 __author__ = 'aikikode'
